@@ -1,12 +1,12 @@
 CXX      := -c++
 CXXFLAGS := -pedantic-errors -Wall -Wextra -Werror
 LDFLAGS  := -L/usr/lib -lstdc++ -lm 
-STATICLIB:= /home/jairo/myProjects/jjj/build/lib/libjjj.a
+STATICLIB:= ../../jjj_orig/build/lib/libjjj.a
 BUILD    := ./build
 OBJ_DIR  := $(BUILD)/objects
 APP_DIR  := $(BUILD)/apps
 TARGET   := mqsp
-INCLUDE  := -Iinclude -I../../jjj/include
+INCLUDE  := -Iinclude -I../jjj_orig/include
 SRC      :=                                                 \
 cpp/mqsProvider/Controller.cpp                              \
 cpp/mqsProvider/ListClient.cpp                              \
