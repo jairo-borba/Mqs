@@ -1,19 +1,18 @@
 /*
- * 
  * The MIT License (MIT)
- * 
- * Copyright (c) 2014 jairo-borba
- * 
+ *
+ * Copyright (c) 2014 jairo-borba jairo.borba.junior@gmail.com
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,13 +22,12 @@
  * SOFTWARE.
  *
  */
-
 #include "mqsProvider/WinMutexClient.h"
-#include <base/ExceptionInfo.h>
+#include <appUtil/JJJException.h>
 #include <windows.h>
-#include <appCore/SafeStringDef.h>
+#include <appUtil/SafeStringDef.h>
 #include <cstring>
-#include <appCore/Shortcuts.h>
+#include <appUtil/Shortcuts.h>
 namespace mqsProvider
 {
 	WinMutexClient::WinMutexClient(void)
@@ -50,15 +48,24 @@ namespace mqsProvider
 		}
 		m_handles.clear();
 	}
-	enum WinMutexClient::ENTER_CRITICAL_AREA_STATUS WinMutexClient::enterCriticalArea( unsigned short int a_semaphoreNumber )
+	enum WinMutexClient::ENTER_CRITICAL_AREA_STATUS
+		WinMutexClient::enterCriticalArea(
+				unsigned short int a_semaphoreNumber )
 	{
-		void* l_handle = 0;
-		std::map<unsigned short int,void*>::iterator l_it = m_handles.find( a_semaphoreNumber );
-		if( l_it == m_handles.end( ) ){
+		void* l_handle = NULL;
+		std::map<unsigned short int,void*>::iterator l_it =
+				m_handles.find( a_semaphoreNumber );
+		if( l_it == m_handles.end( ) )
+		{
 			char l_eventName[1024];
-			safeSPrintf( l_eventName, sizeof l_eventName, "%s%03d", m_eventName.c_str(), a_semaphoreNumber );
+			safeSPrintf(
+					l_eventName,
+					sizeof l_eventName,
+					"%s%03d",
+					m_eventName.c_str(),
+					a_semaphoreNumber );
 			l_handle = OpenEventA( EVENT_ALL_ACCESS, FALSE, l_eventName );
-			RETURN_IF( l_handle == 0, ENTER_FAILED );
+			RETURN_IF( l_handle == NULL, ENTER_FAILED );
 			m_handles.insert( std::pair<unsigned short int,void*>( a_semaphoreNumber, l_handle ) );
 		} else {
 			l_handle = l_it->second;
@@ -80,15 +87,17 @@ namespace mqsProvider
 
 		return l_status;
 	}
-	bool WinMutexClient::setMutex( unsigned short int a_semaphoreNumber, bool a_bOpen )
+	bool WinMutexClient::setMutex(
+			unsigned short int a_semaphoreNumber,
+			bool a_bOpen )
 	{
-		void* l_handle = 0;
+		void* l_handle = NULL;
 		std::map<unsigned short int,void*>::iterator l_it = m_handles.find( a_semaphoreNumber );
 		if( l_it == m_handles.end( ) ){
 			char l_eventName[1024];
 			safeSPrintf( l_eventName, sizeof l_eventName, "%s%03d", m_eventName.c_str(), a_semaphoreNumber );
 			l_handle = OpenEventA( EVENT_ALL_ACCESS, FALSE, l_eventName );
-			RETURN_IF( l_handle == 0, false );
+			RETURN_IF( l_handle == NULL, false );
 			m_handles.insert( std::pair<unsigned short int,void*>( a_semaphoreNumber, l_handle ) );
 		} else {
 			l_handle = l_it->second;
@@ -98,10 +107,12 @@ namespace mqsProvider
 		
 		return l_ret;
 	}
-	void WinMutexClient::exitCriticalArea( unsigned short int a_semaphoreNumber )
+	void WinMutexClient::exitCriticalArea(
+			unsigned short int a_semaphoreNumber )
 	{
-		void* l_handle = 0;
-		std::map<unsigned short int,void*>::iterator l_it = m_handles.find( a_semaphoreNumber );
+		void* l_handle = NULL;
+		std::map<unsigned short int,void*>::iterator l_it =
+				m_handles.find( a_semaphoreNumber );
 		if( l_it == m_handles.end( ) ){
 			char l_eventName[1024];
 			safeSPrintf( l_eventName, sizeof l_eventName, "%s%03d", m_eventName.c_str(), a_semaphoreNumber );
@@ -112,12 +123,13 @@ namespace mqsProvider
 		}
 
 		bool l_ret = SetEvent( l_handle ) != 0;
-		appCore::appAssert( l_ret,
+		appUtil::assert( l_ret,
 			"Error setting Event <%s> errno=<%d>", m_eventName.c_str(),
 			GetLastError()
 		);
 	}
-	void WinMutexClient::setEventName( const std::string& a_eventName )
+	void WinMutexClient::setEventName(
+			const std::string& a_eventName )
 	{
 		m_eventName = a_eventName;
 	}

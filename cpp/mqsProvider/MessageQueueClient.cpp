@@ -1,19 +1,18 @@
 /*
- * 
  * The MIT License (MIT)
- * 
- * Copyright (c) 2014 jairo-borba
- * 
+ *
+ * Copyright (c) 2014 jairo-borba jairo.borba.junior@gmail.com
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,18 +22,17 @@
  * SOFTWARE.
  *
  */
-
 #include "mqsProvider/MessageQueueClient.h"
 #include "mqsProvider/ListClient.h"
-#include <base/ExceptionInfo.h>
+#include <appUtil/JJJException.h>
 #include "mqsProvider/ListClient.h"
 #include "mqsProvider/TreeClient.h"
 #include "mqsProvider/MessageHeader.h"
 #include <cstring>
 #include <cstdio>
 #include <ctime>
-#include <appCore/SafeStringDef.h>
-#include <appCore/Shortcuts.h>
+#include <appUtil/SafeStringDef.h>
+#include <appUtil/Shortcuts.h>
 #include "mqsProvider/Cluster.h"
 
 namespace mqsProvider
@@ -42,60 +40,71 @@ namespace mqsProvider
 	MessageQueueClient::MessageQueueClient(void)
 	{
 		m_clusterDataSize = 0;
-		appCore::initPointer( m_msgQueueHeader );
-		appCore::initPointer( m_messageHeaderBuffer );
-		appCore::initPointer( m_messageTreeNodeBuffer );
-		appCore::initPointer( m_messageBuffer );
+		appUtil::initPointer( m_msgQueueHeader );
+		appUtil::initPointer( m_messageHeaderBuffer );
+		appUtil::initPointer( m_messageTreeNodeBuffer );
+		appUtil::initPointer( m_messageBuffer );
 	}
 	MessageQueueClient::~MessageQueueClient(void)
 	{
 	}
-	void MessageQueueClient::setMessageQueueHeader( MessageQueueHeader* a_msgQueueHeader )
+	void MessageQueueClient::setMessageQueueHeader(
+			MessageQueueHeader* a_msgQueueHeader )
 	{
 		m_msgQueueHeader = a_msgQueueHeader;
 		
-		appCore::appAssertPointer( m_msgQueueHeader );
+		appUtil::assertPointer( m_msgQueueHeader );
 		
-		int l_cmpRet = memcmp( m_msgQueueHeader->magicCode, MSGQHDR_MAGIC_CODE,  sizeof MSGQHDR_MAGIC_CODE );
+		int l_cmpRet = memcmp(
+				m_msgQueueHeader->magicCode,
+				MSGQHDR_MAGIC_CODE,
+				sizeof MSGQHDR_MAGIC_CODE );
 
-		appCore::appAssert( l_cmpRet == 0, "Invalid Message Queue Header Pointer" );
+		appUtil::assert( l_cmpRet == 0, "Invalid Message Queue Header Pointer" );
 	}
 	unsigned short int MessageQueueClient::semaphoreNumber(void) const
 	{
-		appCore::appAssertPointer( m_msgQueueHeader );
+		appUtil::assertPointer( m_msgQueueHeader );
 		return m_msgQueueHeader->semaphoreNumber;
 	}
-	void MessageQueueClient::setMessageClusterDataSize( unsigned int a_clusterDataSize )
+	void MessageQueueClient::setMessageClusterDataSize(
+			unsigned int a_clusterDataSize )
 	{
 		m_clusterDataSize = a_clusterDataSize;
 	}
-	void MessageQueueClient::setMessageHeaderBuffer( void* a_messageHeaderBuffer )
+	void MessageQueueClient::setMessageHeaderBuffer(
+			void* a_messageHeaderBuffer )
 	{
 		m_messageHeaderBuffer = a_messageHeaderBuffer;
 	}
-	void MessageQueueClient::setMessageTreeNodeBuffer( void* a_messageTreeNodeBuffer )
+	void MessageQueueClient::setMessageTreeNodeBuffer(
+			void* a_messageTreeNodeBuffer )
 	{
 		m_messageTreeNodeBuffer = a_messageTreeNodeBuffer;
 	}
-	void MessageQueueClient::setMessageBuffer( void* a_messageBuffer )
+	void MessageQueueClient::setMessageBuffer(
+			void* a_messageBuffer )
 	{
 		m_messageBuffer = a_messageBuffer;
 	}
-	bool MessageQueueClient::addMessageHeaderCluster( unsigned int a_messageHeaderCluster )
+	bool MessageQueueClient::addMessageHeaderCluster(
+			unsigned int a_messageHeaderCluster )
 	{
 		ListClient l_listCli( &m_msgQueueHeader->availableHeaders, m_messageHeaderBuffer );
 		bool l_ret = l_listCli.enqueue( a_messageHeaderCluster );
 
 		return l_ret;
 	}
-	bool MessageQueueClient::addMessageTreeNodeCluster( unsigned int a_messageTreeNodeCluster )
+	bool MessageQueueClient::addMessageTreeNodeCluster(
+			unsigned int a_messageTreeNodeCluster )
 	{
 		ListClient l_listCli(&m_msgQueueHeader->availableTreeNodes,m_messageTreeNodeBuffer);
 		bool l_ret = l_listCli.enqueue( a_messageTreeNodeCluster );
 
 		return l_ret;
 	}
-	bool MessageQueueClient::addMessageCluster( unsigned int a_messageCluster )
+	bool MessageQueueClient::addMessageCluster(
+			unsigned int a_messageCluster )
 	{
 		ListClient l_listCli( &m_msgQueueHeader->availableClusters, m_messageBuffer );
 		bool l_ret = l_listCli.enqueue( a_messageCluster );
@@ -104,7 +113,7 @@ namespace mqsProvider
 	}
 	std::string MessageQueueClient::creationDate(void) const
 	{
-		appCore::appAssertPointer( m_msgQueueHeader );
+		appUtil::assertPointer( m_msgQueueHeader );
 		return m_msgQueueHeader->creationDate;
 	}
 	unsigned int MessageQueueClient::releaseHeaderCluster(void)
@@ -126,9 +135,11 @@ namespace mqsProvider
 		return l_released;
 	}
 
-	enum MessageQueueClient::SEND_STATUS MessageQueueClient::sendMessage( const std::string& a_messageId, const std::string& a_message )
+	enum MessageQueueClient::SEND_STATUS MessageQueueClient::sendMessage(
+			const std::string& a_messageId,
+			const std::string& a_message )
 	{
-		appCore::appAssertPointer( m_msgQueueHeader );
+		appUtil::assertPointer( m_msgQueueHeader );
 		RETURN_IF( !m_msgQueueHeader->inputOn, INPUT_OFF );
 
 		ListClient l_cliAvailHeaders	( &m_msgQueueHeader->availableHeaders,		m_messageHeaderBuffer	);
@@ -171,12 +182,22 @@ namespace mqsProvider
 			l_msgClusterBusyList.enqueue( l_bufferMessage );
 			
 			if( m_clusterDataSize < l_remaingData ){
-				memcpy( CLUSTER_DATA(m_messageBuffer, l_bufferMessage), &a_message.data()[l_startPos], m_clusterDataSize );
+				memcpy(
+						CLUSTER_DATA(m_messageBuffer, l_bufferMessage),
+						&a_message.data()[l_startPos],
+						m_clusterDataSize );
 				l_remaingData	-= m_clusterDataSize;
 				l_startPos		+= m_clusterDataSize;
 			} else {
-				memcpy( CLUSTER_DATA(m_messageBuffer, l_bufferMessage), &a_message.data()[l_startPos], l_remaingData );
-				memset( &CLUSTER_DATA(m_messageBuffer, l_bufferMessage)[l_remaingData], 0, m_clusterDataSize - l_remaingData );
+				memcpy(
+						CLUSTER_DATA(m_messageBuffer,
+								l_bufferMessage),
+								&a_message.data()[l_startPos],
+								l_remaingData );
+				memset(
+						&CLUSTER_DATA(m_messageBuffer, l_bufferMessage)[l_remaingData],
+						0,
+						m_clusterDataSize - l_remaingData );
 				l_remaingData = 0;
 			}		
 		}
@@ -192,45 +213,47 @@ namespace mqsProvider
 	}
 	ListPtr& MessageQueueClient::availableHeaders(void)
 	{
-		appCore::appAssertPointer( m_msgQueueHeader );
+		appUtil::assertPointer( m_msgQueueHeader );
 		return m_msgQueueHeader->availableHeaders;
 	}
 	ListPtr& MessageQueueClient::availableClusters(void)
 	{
-		appCore::appAssertPointer( m_msgQueueHeader );
+		appUtil::assertPointer( m_msgQueueHeader );
 		return m_msgQueueHeader->availableClusters;
 	}
 	ListPtr& MessageQueueClient::availableTreeNodes(void)
 	{
-		appCore::appAssertPointer( m_msgQueueHeader );
+		appUtil::assertPointer( m_msgQueueHeader );
 		return m_msgQueueHeader->availableTreeNodes;
 	}
 	ListPtr& MessageQueueClient::busyHeaders(void){
-		appCore::appAssertPointer( m_msgQueueHeader );
+		appUtil::assertPointer( m_msgQueueHeader );
 		return m_msgQueueHeader->busyHeaders;
 	}
 	TreePtr& MessageQueueClient::busyHeadersIndex(void){
-		appCore::appAssertPointer( m_msgQueueHeader );
+		appUtil::assertPointer( m_msgQueueHeader );
 		return m_msgQueueHeader->busyHeadersIndex;
 	}
 	bool MessageQueueClient::inputOn(void) const
 	{
-		appCore::appAssertPointer( m_msgQueueHeader );
+		appUtil::assertPointer( m_msgQueueHeader );
 		return m_msgQueueHeader->inputOn;
 	}
 	bool MessageQueueClient::outputOn(void) const
 	{
-		appCore::appAssertPointer( m_msgQueueHeader );
+		appUtil::assertPointer( m_msgQueueHeader );
 		return m_msgQueueHeader->outputOn;
 	}
-	void MessageQueueClient::enableInput( bool a_enable )
+	void MessageQueueClient::enableInput(
+			bool a_enable )
 	{
-		appCore::appAssertPointer( m_msgQueueHeader );
+		appUtil::assertPointer( m_msgQueueHeader );
 		m_msgQueueHeader->inputOn = a_enable;
 	}
-	void MessageQueueClient::enableOutput( bool a_enable )
+	void MessageQueueClient::enableOutput(
+			bool a_enable )
 	{
-		appCore::appAssertPointer( m_msgQueueHeader );
+		appUtil::assertPointer( m_msgQueueHeader );
 		m_msgQueueHeader->outputOn = a_enable;
 	}
 	unsigned int MessageQueueClient::countMessages(void) const
@@ -239,9 +262,12 @@ namespace mqsProvider
 		unsigned int l_countMessages = l_cliBusyHeaders.count();
 		return l_countMessages;
 	}
-	bool MessageQueueClient::receiveMessage( const std::string& a_messageId, std::string& a_message, date_t& a_messageDate )
+	bool MessageQueueClient::receiveMessage(
+			const std::string& a_messageId,
+			std::string& a_message,
+			date_t& a_messageDate )
 	{
-		appCore::appAssertPointer( m_msgQueueHeader );
+		appUtil::assertPointer( m_msgQueueHeader );
 
 		a_message.clear();
 
@@ -274,7 +300,9 @@ namespace mqsProvider
 		unsigned int l_remaining = l_messageHeader->messageSize;
 		unsigned int l_bufferMessage = l_cliBusyClusters.dequeue();
 		while( l_bufferMessage != INDEX_NULL ){
-			a_message.append( CLUSTER_DATA(m_messageBuffer, l_bufferMessage), l_remaining < m_clusterDataSize ? l_remaining : m_clusterDataSize );
+			a_message.append(
+					CLUSTER_DATA(m_messageBuffer, l_bufferMessage),
+					l_remaining < m_clusterDataSize ? l_remaining : m_clusterDataSize );
 			memset( CLUSTER_DATA(m_messageBuffer, l_bufferMessage), 0, m_clusterDataSize );
 			l_cliAvailClusters.enqueue( l_bufferMessage );
 			l_bufferMessage = l_cliBusyClusters.dequeue();
@@ -288,9 +316,10 @@ namespace mqsProvider
 		return true;
 	}
 	/////////
-	bool MessageQueueClient::dropExpiredMessage( std::string& a_message )
+	bool MessageQueueClient::dropExpiredMessage(
+			std::string& a_message )
 	{
-		appCore::appAssertPointer( m_msgQueueHeader );
+		appUtil::assertPointer( m_msgQueueHeader );
 		a_message.clear();
 
 		RETURN_IF( !m_msgQueueHeader->outputOn, false );

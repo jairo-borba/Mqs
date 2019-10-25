@@ -1,19 +1,18 @@
 /*
- * 
  * The MIT License (MIT)
- * 
- * Copyright (c) 2014 jairo-borba
- * 
+ *
+ * Copyright (c) 2014 jairo-borba jairo.borba.junior@gmail.com
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,15 +22,13 @@
  * SOFTWARE.
  *
  */
-
 #include "mqsFactory/SharedMemoryAccessFactory.h"
 
-#if _MSC_VER > 1600
-#include <appCore/Shortcuts.h>
-#include <appCore/SafeStringDef.h>
-#include <appCore/OSEnvironment.h>
+#if defined(_MSC_VER)
+#include <appUtil/Shortcuts.h>
+#include <appUtil/SafeStringDef.h>
+#include <appUtil/OSEnvironment.h>
 #include "mqsProvider/WinNamedSharedMemAccess.h"
-#include "mqsFactory\DefEnvVarsNames.h"
 
 namespace mqsFactory
 {
@@ -44,22 +41,26 @@ namespace mqsFactory
 	mqsProvider::SharedMemoryAccess* SharedMemoryAccessFactory::create(void)
 	{
 		mqsProvider::WinNamedSharedMemAccess* l_pshm;
-		appCore::initPointer(l_pshm);
-		appCore::safeNew(l_pshm);
+		appUtil::initPointer(l_pshm);
+		appUtil::safeNew(l_pshm);
 		char l_shmName[1024];
-		appCore::OSEnvironment l_env;
-		safeSPrintf(l_shmName, sizeof l_shmName, "Global\\%s", l_env.getRequiredEnv(ENVIRONMENT_VARIABLE_NAME_FOR_KEY_WORD).c_str());
+		appUtil::OSEnvironment l_env;
+		safeSPrintf(
+				l_shmName,
+				sizeof l_shmName,
+				"Global\\%s",
+				l_env.getEnv( "MQS-Provider-Instance" ).c_str() );
 		l_pshm->setSharedMemoryName( l_shmName );
 
 		return l_pshm;
 	}
 }//namespace mqsFactory
 #else
-#	if defined(GCC)
+#	if defined(__GNUC__)
 
-#include <appCore/Shortcuts.h>
-#include <appCore/SafeStringDef.h>
-#include <appCore/OSEnvironment.h>
+#include <appUtil/Shortcuts.h>
+#include <appUtil/SafeStringDef.h>
+#include <appUtil/OSEnvironment.h>
 #include "mqsProvider/PosixSharedMemoryAccess.h"
 
 namespace mqsFactory
@@ -73,12 +74,17 @@ namespace mqsFactory
 	mqsProvider::SharedMemoryAccess* SharedMemoryAccessFactory::create(void)
 	{
 		mqsProvider::PosixSharedMemoryAccess* l_pshm;
-		appCore::initPointer(l_pshm);
-		appCore::safeNew(l_pshm);
+		appUtil::initPointer(l_pshm);
+		appUtil::safeNew(l_pshm);
 		char l_shmName[1024];
-		appCore::OSEnvironment l_env;
-		safeSPrintf( l_shmName, sizeof l_shmName, "%s", l_env.getEnv( ENVIRONMENT_VARIABLE_NAME_FOR_KEY_WORD ).c_str() );
-		l_pshm->setFileToKey( fileUtil::File(l_shmName) );
+		appUtil::OSEnvironment l_env;
+		safeSPrintf(
+				l_shmName,
+				sizeof l_shmName,
+				"%s",
+				l_env.getEnv( "MQS_PROVIDER_ID" ).c_str() );
+		l_pshm->setFileToKey(
+				fileUtil::File(l_shmName) );
 
 		return l_pshm;
 	}

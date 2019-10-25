@@ -1,19 +1,18 @@
 /*
- * 
  * The MIT License (MIT)
- * 
- * Copyright (c) 2014 jairo-borba
- * 
+ *
+ * Copyright (c) 2014 jairo-borba jairo.borba.junior@gmail.com
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,29 +22,28 @@
  * SOFTWARE.
  *
  */
-
 #include "mqsProvider/SharedMemoryAllocator.h"
 #include "mqsProvider/MessageQueueServiceHeader.h"
 #include "mqsProvider/MessageQueueServiceServer.h"
 #include <cstring>
 #include <cstdio>
 #include <ctime>
-#include <appCore/SafeStringDef.h>
+#include <appUtil/SafeStringDef.h>
 #include "mqsProvider/ListClient.h"
 #include "mqsProvider/MessageQueueServer.h"
 #include "mqsProvider/MessageQueueClient.h"
 #include "mqsProvider/TreeClient.h"
-#include <base/ExceptionInfo.h>
-#include <appCore/Shortcuts.h>
+#include <appUtil/JJJException.h>
+#include <appUtil/Shortcuts.h>
 
 namespace mqsProvider
 {
 	MessageQueueServiceServer::MessageQueueServiceServer(void)
 	{
-		appCore::initPointer( m_mqsHeader );
-		appCore::initPointer( m_shmAllocator );
-		appCore::initPointer( m_mutexClient );
-		appCore::initPointer( m_mutexServer );
+		appUtil::initPointer( m_mqsHeader );
+		appUtil::initPointer( m_shmAllocator );
+		appUtil::initPointer( m_mutexClient );
+		appUtil::initPointer( m_mutexServer );
 		m_maxMessageHeaders					= DEFAULT_MAX_MESSAGE_HEADERS;
 		m_messageHeaderSize					= sizeof( mqsProvider::MessageHeader );
 		m_maxMessageClusters				= DEFAULT_MAX_MESSAGE_BUFFERS;
@@ -68,51 +66,57 @@ namespace mqsProvider
 	{
 		return m_mqsHeader;
 	}
-	void MessageQueueServiceServer::setSharedMemoryAllocator(mqsProvider::SharedMemoryAllocator* a_shmAllocator)
+	void MessageQueueServiceServer::setSharedMemoryAllocator(
+			mqsProvider::SharedMemoryAllocator* a_shmAllocator)
 	{
 		m_shmAllocator = a_shmAllocator;
 	}
-	void MessageQueueServiceServer::setMutualExclusionClient(mqsProvider::MutualExclusionClient* a_mutexClient)
+	void MessageQueueServiceServer::setMutualExclusionClient(
+			mqsProvider::MutualExclusionClient* a_mutexClient)
 	{
 		m_mutexClient = a_mutexClient;
 	}
-	void MessageQueueServiceServer::setMutualExclusionServer(mqsProvider::MutualExclusionServer* a_mutexServer)
+	void MessageQueueServiceServer::setMutualExclusionServer(
+			mqsProvider::MutualExclusionServer* a_mutexServer)
 	{
 		m_mutexServer = a_mutexServer;
 	}
-	void MessageQueueServiceServer::setGlobalMaxMessages( int a_globalMaxMessages )
+	void MessageQueueServiceServer::setGlobalMaxMessages(
+			int a_globalMaxMessages )
 	{
 		m_maxMessageHeaders = a_globalMaxMessages;
 	}
-	void MessageQueueServiceServer::setGlobalMessageClustersSize( unsigned int a_globalMessageClustersSize )
+	void MessageQueueServiceServer::setGlobalMessageClustersSize(
+			unsigned int a_globalMessageClustersSize )
 	{
 		m_messageClusterSize = a_globalMessageClustersSize;
 	}
-	void MessageQueueServiceServer::setGlobalMessageClustersQuantity( int a_globalMessageClustersQuantity )
+	void MessageQueueServiceServer::setGlobalMessageClustersQuantity(
+			int a_globalMessageClustersQuantity )
 	{
 		m_maxMessageClusters = a_globalMessageClustersQuantity;
 	}
 	
 	bool MessageQueueServiceServer::create(void)
 	{
-		appCore::appAssertPointer( m_mutexServer );
-		appCore::appAssertPointer( m_mutexClient );
-		appCore::appAssertPointer( m_shmAllocator );
+		appUtil::assertPointer( m_mutexServer );
+		appUtil::assertPointer( m_mutexClient );
+		appUtil::assertPointer( m_shmAllocator );
 		
 		this->setupLists();
 		//Um semaforo para casa message queue + um semaforo para acessar as listas globais.
 		m_mutexServer->setNumOfSemaphores( m_maxMessageQueues + 1 );
-		appCore::appAssert( m_mutexServer->create(), "Could not create semaphore system" );
-		appCore::appAssert( m_mutexClient->open(), "MessageQueueServiceServer::create: Error opening Mutex" );
+		appUtil::assert( m_mutexServer->create(), "Could not create semaphore system" );
+		appUtil::assert( m_mutexClient->open(), "MessageQueueServiceServer::create: Error opening Mutex" );
 		unsigned int l_shmRequiredSize = this->calculateTotalSharedMemorySizeAndOffset();
 
 		bool l_bMutexRet = m_mutexClient->setMutex( GLOBAL_LISTS_SEMAPHORE_NUMBER, false );
-		appCore::appAssert( l_bMutexRet, "MessageQueueServiceServer::create: Could not set mutex" );
+		appUtil::assert( l_bMutexRet, "MessageQueueServiceServer::create: Could not set mutex" );
 
 		bool l_shmCreate = this->m_shmAllocator->allocate( l_shmRequiredSize );
 		if( !l_shmCreate ){
 			m_mutexClient->exitCriticalArea(GLOBAL_LISTS_SEMAPHORE_NUMBER);
-			throw base::ExceptionInfo( "Could not allocate shared memory space" );
+			throw appUtil::JJJException( "Could not allocate shared memory space" );
 		}
 
 		char* l_shmPtr = (char*)this->m_shmAllocator->sharedMemoryPtr();
@@ -178,7 +182,8 @@ namespace mqsProvider
 		return l_totalSize;
 	}
 
-	void MessageQueueServiceServer::setupMemoryOffset(char* a_baseAddr)
+	void MessageQueueServiceServer::setupMemoryOffset(
+			char* a_baseAddr)
 	{
 		m_mqsHeader = reinterpret_cast<MessageQueueServiceHeader*>( a_baseAddr );
 		

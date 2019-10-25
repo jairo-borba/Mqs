@@ -1,19 +1,18 @@
 /*
- * 
  * The MIT License (MIT)
- * 
- * Copyright (c) 2014 jairo-borba
- * 
+ *
+ * Copyright (c) 2014 jairo-borba jairo.borba.junior@gmail.com
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,22 +22,21 @@
  * SOFTWARE.
  *
  */
-
 #include "mqsProvider/ListClient.h"
 #include "mqsProvider/MessageQueueServiceClient.h"
 #include "mqsProvider/MessageQueueClient.h"
 #include "mqsProvider/MessageQueueServiceHeader.h"
 #include "mqsProvider/MutualExclusionClient.h"
 #include "mqsProvider/Subscriber.h"
-#include <base/ExceptionInfo.h>
-#include <appCore/Shortcuts.h>
+#include <appUtil/JJJException.h>
+#include <appUtil/Shortcuts.h>
 #include <string>
 
-#if _MSC_VER > 1600
+#if defined(_MSCVER)
 #	include <windows.h>
 #	define SUBSCRIBER_SLEEP(DELAY)	Sleep(DELAY)
 #else
-#	if defined(GCC) || defined(XLC)
+#	if defined(GCC) || defined(XLC) || defined(__GNUC__)
 #		include<unistd.h>
 #		define SUBSCRIBER_SLEEP(DELAY)	usleep(DELAY*1000)
 #	endif
@@ -46,16 +44,18 @@
 
 namespace mqsProvider
 {
-	Subscriber::Subscriber( MessageQueueServiceClient* a_messageQueueServiceClient, MutualExclusionClient* a_mutexClient )
+	Subscriber::Subscriber(
+			MessageQueueServiceClient* a_messageQueueServiceClient,
+			MutualExclusionClient* a_mutexClient )
 	{
 		m_messageQueueServiceClient = a_messageQueueServiceClient;
 		m_mutexClient = a_mutexClient;
 
-		appCore::appAssertPointer( m_messageQueueServiceClient );
-		appCore::appAssertPointer( m_mutexClient );
-		appCore::initPointer( m_messageQueueClient );
-		appCore::initPointer( m_message );
-		appCore::initPointer( m_messageIdentification );
+		appUtil::assertPointer( m_messageQueueServiceClient );
+		appUtil::assertPointer( m_mutexClient );
+		appUtil::initPointer( m_messageQueueClient );
+		appUtil::initPointer( m_message );
+		appUtil::initPointer( m_messageIdentification );
 
 		m_milisecondsTimeout	= 0;
 		m_elapsedTime			= 0;
@@ -66,9 +66,9 @@ namespace mqsProvider
 	{
 		std::string* l_msg = reinterpret_cast<std::string*>(m_message);
 		std::string* l_id = reinterpret_cast<std::string*>(m_messageIdentification);
-		appCore::safeDelete( m_messageQueueClient );
+		appUtil::safeDelete( m_messageQueueClient );
 		delete l_msg;
-		m_message = 0;
+		m_message = NULL;
 		delete l_id;
 		m_messageIdentification = 0;
 		VOID_RETURN_IF_NULL( m_mutexClient );
@@ -76,23 +76,35 @@ namespace mqsProvider
 		m_mutexClient->close();
 		m_messageQueueServiceClient->close();
 	}
-	bool Subscriber::open( const char* a_messageQueueName )
+	bool Subscriber::open(
+			const char* a_messageQueueName )
 	{
-		appCore::appAssertPointer( m_messageQueueServiceClient );
-		appCore::appAssertPointer( m_mutexClient );
+		appUtil::assertPointer( m_messageQueueServiceClient );
+		appUtil::assertPointer( m_mutexClient );
 		
-		appCore::safeNew( m_messageQueueClient );
+		appUtil::safeNew( m_messageQueueClient );
 		m_message				= new std::string;
 		m_messageIdentification	= new std::string;
-		appCore::appAssertPointer( m_message );
-		appCore::appAssertPointer( m_messageIdentification );
+		appUtil::assertPointer( m_message );
+		appUtil::assertPointer( m_messageIdentification );
 
-		MutualExclusionClient::ENTER_CRITICAL_AREA_STATUS l_enterStatus = m_mutexClient->enterCriticalArea(GLOBAL_LISTS_SEMAPHORE_NUMBER);
-		appCore::appAssert( l_enterStatus == MutualExclusionClient::ENTER_SUCCESS,__FILE__, __LINE__, "Subscriber::open: Could not enter in critical area" );
+		MutualExclusionClient::ENTER_CRITICAL_AREA_STATUS l_enterStatus =
+				m_mutexClient->enterCriticalArea(GLOBAL_LISTS_SEMAPHORE_NUMBER);
+		appUtil::assert(
+				l_enterStatus == MutualExclusionClient::ENTER_SUCCESS,
+				__FILE__,
+				__LINE__,
+				"Subscriber::open: Could not enter in critical area" );
 				
-		bool l_ret = m_messageQueueServiceClient->findMessageQueue( a_messageQueueName, m_messageQueueClient );
+		bool l_ret =
+				m_messageQueueServiceClient->findMessageQueue(
+						a_messageQueueName, m_messageQueueClient );
 		if( l_ret ){
-			safeSPrintf( m_msgqCreationDate, sizeof m_msgqCreationDate, "%s", m_messageQueueClient->creationDate().c_str() );
+			safeSPrintf(
+					m_msgqCreationDate,
+					sizeof m_msgqCreationDate,
+					"%s",
+					m_messageQueueClient->creationDate().c_str() );
 		}
 
 		m_mutexClient->exitCriticalArea(GLOBAL_LISTS_SEMAPHORE_NUMBER);
@@ -103,9 +115,9 @@ namespace mqsProvider
 	{
 		std::string* l_msg = reinterpret_cast<std::string*>(m_message);
 		std::string* l_id = reinterpret_cast<std::string*>(m_messageIdentification);
-		appCore::safeDelete( m_messageQueueClient );
+		appUtil::safeDelete( m_messageQueueClient );
 		delete l_msg;
-		m_message = 0;
+		m_message = NULL;
 		delete l_id;
 		m_messageIdentification = 0;
 
@@ -113,14 +125,17 @@ namespace mqsProvider
 		m_messageQueueServiceClient->close();
 	}
 
-	void Subscriber::setTimeout( unsigned int a_milisecondsTimeout )
+	void Subscriber::setTimeout(
+			unsigned int a_milisecondsTimeout )
 	{
 		m_milisecondsTimeout = a_milisecondsTimeout;
 	}
 
-	const Subscriber& Subscriber::identifyMessage( const char* a_messageIdentification ) const
+	const Subscriber& Subscriber::identifyMessage(
+			const char* a_messageIdentification ) const
 	{
-		std::string& l_refMsgId = *reinterpret_cast<std::string*>(m_messageIdentification);
+		std::string& l_refMsgId =
+				*reinterpret_cast<std::string*>(m_messageIdentification);
 		l_refMsgId.assign( a_messageIdentification );
 
 		return *this;
@@ -146,15 +161,17 @@ namespace mqsProvider
 		RETURN_IF_NULL( m_messageQueueClient, RECV_FATAL_ERROR );
 		RETURN_IF_NULL( m_message, RECV_FATAL_ERROR );
 
-		const mqsProvider::MessageQueueServiceHeader* l_mqsHeader = m_messageQueueServiceClient->mqsHeader();
+		const mqsProvider::MessageQueueServiceHeader* l_mqsHeader =
+				m_messageQueueServiceClient->mqsHeader();
 		RETURN_IF_NULL( l_mqsHeader, RECV_FATAL_ERROR );
 
 		std::string l_originalCreationDate = m_msgqCreationDate;
 		std::string& l_msg = *(reinterpret_cast<std::string*>(m_message));
 		unsigned short int l_msgqSemNum = m_messageQueueClient->semaphoreNumber();
 
-		MutualExclusionClient::ENTER_CRITICAL_AREA_STATUS l_enterStatus = m_mutexClient->enterCriticalArea(l_msgqSemNum);
-		appCore::appAssert(
+		MutualExclusionClient::ENTER_CRITICAL_AREA_STATUS l_enterStatus =
+				m_mutexClient->enterCriticalArea(l_msgqSemNum);
+		appUtil::assert(
 			l_enterStatus == MutualExclusionClient::ENTER_SUCCESS,
 			__FILE__, __LINE__, "Subscriber::open: Could not enter in critical area" );
 
@@ -162,15 +179,20 @@ namespace mqsProvider
 			m_mutexClient->exitCriticalArea(l_msgqSemNum);
 			return RECV_SYSTEM_DOWN;
 		}
-		int l_compareDate = l_originalCreationDate.compare( m_messageQueueClient->creationDate() );
+		int l_compareDate = l_originalCreationDate.compare(
+				m_messageQueueClient->creationDate() );
 		if( l_compareDate != 0 ){
 			m_mutexClient->exitCriticalArea(l_msgqSemNum);
 			return RECV_MSGQUEUE_DESTROYED;
 		}
 
-		std::string& l_refMsgId = *reinterpret_cast<std::string*>(m_messageIdentification);
+		std::string& l_refMsgId =
+				*reinterpret_cast<std::string*>(m_messageIdentification);
 		date_t l_messageDate;
-		bool l_ret = m_messageQueueClient->receiveMessage( l_refMsgId, l_msg, l_messageDate );
+		bool l_ret = m_messageQueueClient->receiveMessage(
+				l_refMsgId,
+				l_msg,
+				l_messageDate );
 		m_mutexClient->exitCriticalArea(l_msgqSemNum);
 		m_elapsedTime = ELAPSEDTIME( l_messageDate );
 
@@ -185,13 +207,13 @@ namespace mqsProvider
 
 	const char* Subscriber::message(void) const
 	{
-		RETURN_IF( m_message == 0, "" );
+		RETURN_IF( m_message == NULL, "" );
 		std::string& l_msg = *(reinterpret_cast<std::string*>(m_message));
 		return l_msg.data();
 	}
 	unsigned int Subscriber::messageSize(void) const
 	{
-		RETURN_IF( m_message == 0, 0 );
+		RETURN_IF( m_message == NULL, 0 );
 		std::string& l_msg = *(reinterpret_cast<std::string*>(m_message));
 		return static_cast<unsigned int>( l_msg.size() );
 	}

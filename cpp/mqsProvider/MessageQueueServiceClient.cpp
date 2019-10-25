@@ -1,19 +1,18 @@
 /*
- * 
  * The MIT License (MIT)
- * 
- * Copyright (c) 2014 jairo-borba
- * 
+ *
+ * Copyright (c) 2014 jairo-borba jairo.borba.junior@gmail.com
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,35 +22,50 @@
  * SOFTWARE.
  *
  */
-
 #include "mqsProvider/MessageQueueServiceClient.h"
 #include "mqsProvider/TreeClient.h"
 #include "mqsProvider/TreeNode.h"
 #include "mqsProvider/ListClient.h"
 #include "mqsProvider/MessageQueueServiceHeader.h"
 #include "mqsProvider/MessageQueueServer.h"
-#include <base/ExceptionInfo.h>
-#include <appCore/Shortcuts.h>
+#include <appUtil/JJJException.h>
+#include <appUtil/Shortcuts.h>
 
 namespace mqsProvider
 {
 	MessageQueueServiceClient::MessageQueueServiceClient(void)
 	{
-		appCore::initPointer( m_sharedMemoryAccess );
-		appCore::initPointer( m_mqsHeader );
-		appCore::initPointer( m_messageHeaderBuffer );
-		appCore::initPointer( m_messageClusterBuffer );
-		appCore::initPointer( m_messageQueueBuffer );
-		appCore::initPointer( m_treeNodeBuffer );
+		appUtil::initPointer( m_sharedMemoryAccess );
+		appUtil::initPointer( m_mqsHeader );
+		appUtil::initPointer( m_messageHeaderBuffer );
+		appUtil::initPointer( m_messageClusterBuffer );
+		appUtil::initPointer( m_messageQueueBuffer );
+		appUtil::initPointer( m_treeNodeBuffer );
 	}
 	MessageQueueServiceClient::~MessageQueueServiceClient(void)
 	{
 	}
-	void* MessageQueueServiceClient::messageHeaderBuffer(void){return m_messageHeaderBuffer;}
-	void* MessageQueueServiceClient::messageClusterBuffer(void){return m_messageClusterBuffer;}
-	void* MessageQueueServiceClient::messageQueueBuffer(void){return m_messageQueueBuffer;}
-	void* MessageQueueServiceClient::treeNodeBuffer(void){return m_treeNodeBuffer;}
-	void  MessageQueueServiceClient::setSharedMemoryAccess( SharedMemoryAccess* a_sharedMemoryAccess ){m_sharedMemoryAccess = a_sharedMemoryAccess;}
+	void* MessageQueueServiceClient::messageHeaderBuffer(void)
+	{
+		return m_messageHeaderBuffer;
+	}
+	void* MessageQueueServiceClient::messageClusterBuffer(void)
+	{
+		return m_messageClusterBuffer;
+	}
+	void* MessageQueueServiceClient::messageQueueBuffer(void)
+	{
+		return m_messageQueueBuffer;
+	}
+	void* MessageQueueServiceClient::treeNodeBuffer(void)
+	{
+		return m_treeNodeBuffer;
+	}
+	void  MessageQueueServiceClient::setSharedMemoryAccess(
+			SharedMemoryAccess* a_sharedMemoryAccess )
+	{
+		m_sharedMemoryAccess = a_sharedMemoryAccess;
+	}
 
 	struct tagMessageQueueServiceHeader* MessageQueueServiceClient::mqsHeader(void)
 	{
@@ -60,7 +74,9 @@ namespace mqsProvider
 	}
 	bool MessageQueueServiceClient::open(void)
 	{
-		appCore::appAssert( m_sharedMemoryAccess->bind(), "Could not attach to shared memory" );
+		appUtil::assert(
+				m_sharedMemoryAccess->bind(),
+				"Could not attach to shared memory" );
 		
 		void* l_sharedMemorytr = m_sharedMemoryAccess->sharedMemoryPtr();
 		m_mqsHeader					= MSG_QUEUE_SERVICE_HEADER( l_sharedMemorytr );
@@ -83,10 +99,12 @@ namespace mqsProvider
 	{
 		m_sharedMemoryAccess->detach();
 	}
-	bool MessageQueueServiceClient::findMessageQueue( const std::string& a_messageQueueName, MessageQueueClient* a_messageQueueClient )
+	bool MessageQueueServiceClient::findMessageQueue(
+			const std::string& a_messageQueueName,
+			MessageQueueClient* a_messageQueueClient )
 	{
-		appCore::appAssertPointer(a_messageQueueClient,__FILE__,__LINE__);
-		appCore::appAssertPointer(m_mqsHeader,__FILE__,__LINE__);
+		appUtil::assertPointer(a_messageQueueClient,__FILE__,__LINE__);
+		appUtil::assertPointer(m_mqsHeader,__FILE__,__LINE__);
 
 		mqsProvider::TreeClient l_treeClient( &m_mqsHeader->busyMessageQueues, m_treeNodeBuffer );
 		unsigned int l_msgQueue = l_treeClient.find( a_messageQueueName.c_str() );
@@ -104,9 +122,10 @@ namespace mqsProvider
 
 		return true;
 	}
-	bool MessageQueueServiceClient::destroyMessageQueue( const char* a_msgqName )
+	bool MessageQueueServiceClient::destroyMessageQueue(
+			const char* a_msgqName )
 	{
-		appCore::appAssertPointer(m_mqsHeader);
+		appUtil::assertPointer(m_mqsHeader);
 
 		mqsProvider::TreeClient l_treeClient( &m_mqsHeader->busyMessageQueues, m_treeNodeBuffer );
 		unsigned int l_msgQueue = l_treeClient.find( a_msgqName );
@@ -158,9 +177,12 @@ namespace mqsProvider
 
 		return true;
 	}
-	bool MessageQueueServiceClient::createMessageQueue( const char* a_msgqName, unsigned int a_countLimit, unsigned int a_timeToLive )
+	bool MessageQueueServiceClient::createMessageQueue(
+			const char* a_msgqName,
+			unsigned int a_countLimit,
+			unsigned int a_timeToLive )
 	{
-		appCore::appAssertPointer(m_mqsHeader);
+		appUtil::assertPointer(m_mqsHeader);
 		
 		mqsProvider::ListClient l_msgQueues( &m_mqsHeader->listMessageQueues.mainList, m_messageQueueBuffer );
 		unsigned short int l_semaphoreNumber = static_cast<unsigned short int>(m_mqsHeader->listMessageQueues.mainList.countElements);
@@ -191,7 +213,7 @@ namespace mqsProvider
 		mqsProvider::TreeClient l_treeClient(&m_mqsHeader->busyMessageQueues,m_treeNodeBuffer);
 		
 		bool l_insertRet = l_treeClient.insert( l_treeNodeCluster, l_key, l_attach );
-		appCore::appAssert( l_treeClient.scanValidation(), "Fatal error, TreeClient Object corrupted" );
+		appUtil::assert( l_treeClient.scanValidation(), "Fatal error, TreeClient Object corrupted" );
 
 		l_msgQueues.dequeue();
 		l_buffersTreeNodes.dequeue();

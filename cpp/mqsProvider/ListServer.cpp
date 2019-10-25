@@ -1,19 +1,18 @@
 /*
- * 
  * The MIT License (MIT)
- * 
- * Copyright (c) 2014 jairo-borba
- * 
+ *
+ * Copyright (c) 2014 jairo-borba jairo.borba.junior@gmail.com
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,17 +22,16 @@
  * SOFTWARE.
  *
  */
-
 #include "mqsProvider/ListServer.h"
 #include "mqsProvider/ListHeader.h"
 #include <cstring>
 #include <cstdio>
 #include <ctime>
-#include <appCore/SafeStringDef.h>
-#include <base/ExceptionInfo.h>
+#include <appUtil/SafeStringDef.h>
+#include <appUtil/JJJException.h>
 #include "mqsProvider/Cluster.h"
 #include "mqsProvider/ListClient.h"
-#include <appCore/Shortcuts.h>
+#include <appUtil/Shortcuts.h>
 namespace mqsProvider
 {
 	ListServer::ListServer(void)
@@ -41,15 +39,15 @@ namespace mqsProvider
 		m_clusterDataSize	= 0;
 		m_numOfClusters		= 0;
 		m_bufferSize		= 0;
-		appCore::initPointer( m_listHeader );
-		appCore::initPointer( m_buffer );
+		appUtil::initPointer( m_listHeader );
+		appUtil::initPointer( m_buffer );
 	}
 	ListServer::~ListServer(void)
 	{
 	}
 	unsigned int ListServer::bufferRequiredSize(void) const
 	{
-		appCore::appAssert( m_clusterDataSize != 0 && m_numOfClusters != 0,
+		appUtil::assert( m_clusterDataSize != 0 && m_numOfClusters != 0,
 			"ListServer::memoryRequiredSize called, buffer size <%d> and num of buffers <%d> must to be defined",
 			m_clusterDataSize, m_numOfClusters
 		);
@@ -58,41 +56,46 @@ namespace mqsProvider
 
 		return l_requiredSize;
 	}
-	void ListServer::setListHeader( ListHeader* a_listHeader )
+	void ListServer::setListHeader(
+			ListHeader* a_listHeader )
 	{
 		m_listHeader = a_listHeader;
 	}
-	void ListServer::setBuffer( void* a_bufferPtr, unsigned int a_bufferSize )
+	void ListServer::setBuffer(
+			void* a_bufferPtr,
+			unsigned int a_bufferSize )
 	{
-		appCore::appAssert( m_clusterDataSize != 0 && m_numOfClusters != 0,
+		appUtil::assert( m_clusterDataSize != 0 && m_numOfClusters != 0,
 			"ListServer::setBuffer called, cluster data size <%d> and num of clusters <%d> must to be defined, "
 			"then call memoryRequiredSize to get buffer requidred size. After call setBuffer with the, "
 			"buffer properly allocated (with required size)",
 			m_clusterDataSize, m_numOfClusters
 		);
 
-		appCore::appAssert( a_bufferSize == this->bufferRequiredSize(),
+		appUtil::assert( a_bufferSize == this->bufferRequiredSize(),
 			"The buffer size must to be exactly as defined by memoryRequiredSize() method" );
 
-		appCore::appAssertPointer( a_bufferPtr );
+		appUtil::assertPointer( a_bufferPtr );
 		m_buffer = a_bufferPtr;
 	}
 	void* ListServer::bufferPtr(void)
 	{
 		return m_buffer;
 	}
-	void ListServer::setClusterDataSize(unsigned int a_clusterDataSize)
+	void ListServer::setClusterDataSize(
+			unsigned int a_clusterDataSize)
 	{
 		m_clusterDataSize = a_clusterDataSize;
 	}
-	void ListServer::setNumOfClusters(unsigned int a_numOfClusters)
+	void ListServer::setNumOfClusters(
+			unsigned int a_numOfClusters)
 	{
 		m_numOfClusters = a_numOfClusters;
 	}
 	bool ListServer::create(void)
 	{
-		appCore::appAssertPointer( m_listHeader );
-		appCore::appAssertPointer( m_buffer );
+		appUtil::assertPointer( m_listHeader );
+		appUtil::assertPointer( m_buffer );
 		
 		INIT_LIST_HEADER(m_listHeader, *this, m_numOfClusters, m_clusterDataSize );
 

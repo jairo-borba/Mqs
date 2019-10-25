@@ -1,19 +1,18 @@
 /*
- * 
  * The MIT License (MIT)
- * 
- * Copyright (c) 2014 jairo-borba
- * 
+ *
+ * Copyright (c) 2014 jairo-borba jairo.borba.junior@gmail.com
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,11 +22,10 @@
  * SOFTWARE.
  *
  */
-
 #include "mqsProvider/Session.h"
 #include <string>
-#include <base/ExceptionInfo.h>
-#include <appCore/Shortcuts.h>
+#include <appUtil/JJJException.h>
+#include <appUtil/Shortcuts.h>
 #include "mqsProvider/Subscriber.h"
 #include "mqsProvider/Publisher.h"
 #include "mqsProvider/MessageQueueServiceClient.h"
@@ -50,9 +48,9 @@ namespace mqsProvider
 		m_subscribers	= NULL;
 		m_publishers	= NULL;
 		m_isConnected	= false;
-		appCore::initPointer(m_shmAccess);
-		appCore::initPointer(m_mtxClient);
-		appCore::initPointer(m_mqsClient);
+		appUtil::initPointer(m_shmAccess);
+		appUtil::initPointer(m_mtxClient);
+		appUtil::initPointer(m_mqsClient);
 	}
 	Session::~Session(void)
 	{
@@ -65,22 +63,22 @@ namespace mqsProvider
 		mqsFactory::SharedMemoryAccessFactory l_shmFactory;
 		m_shmAccess		= l_shmFactory.create();
 		if( !m_shmAccess->bind() ){
-			appCore::safeDelete(m_shmAccess);
+			appUtil::safeDelete(m_shmAccess);
 			return false;
 		}
 		mqsFactory::MutualExclusionClientFactory l_mtxFactory;
 		m_mtxClient		= l_mtxFactory.create();
 		if( !m_mtxClient->open() ){
-			appCore::safeDelete(m_shmAccess);
-			appCore::safeDelete(m_mtxClient);
+			appUtil::safeDelete(m_shmAccess);
+			appUtil::safeDelete(m_mtxClient);
 			return false;
 		}
-		appCore::safeNew(m_mqsClient);
+		appUtil::safeNew(m_mqsClient);
 		m_mqsClient->setSharedMemoryAccess( m_shmAccess );
 		if( !m_mqsClient->open() ){
-			appCore::safeDelete(m_shmAccess);
-			appCore::safeDelete(m_mtxClient);
-			appCore::safeDelete(m_mqsClient);
+			appUtil::safeDelete(m_shmAccess);
+			appUtil::safeDelete(m_mtxClient);
+			appUtil::safeDelete(m_mqsClient);
 			return false;
 		}
 		m_subscribers	= new SUBSCRIBERS;
@@ -118,16 +116,17 @@ namespace mqsProvider
 		m_mqsClient->close();
 		m_shmAccess->detach();
 		m_mtxClient->close();
-		appCore::safeDelete(m_shmAccess);
-		appCore::safeDelete(m_mtxClient);
-		appCore::safeDelete(m_mqsClient);
+		appUtil::safeDelete(m_shmAccess);
+		appUtil::safeDelete(m_mtxClient);
+		appUtil::safeDelete(m_mqsClient);
 
 		m_isConnected = false;
 	}
 	
-	const Subscriber* Session::attachSubscriber( const char* a_mqName )
+	const Subscriber* Session::attachSubscriber(
+			const char* a_mqName )
 	{
-		appCore::appAssert( isConnected(), "Session not connected" );
+		appUtil::assert( isConnected(), "Session not connected" );
 
 		SUBSCRIBERS* l_pmap = reinterpret_cast<SUBSCRIBERS*>( m_subscribers );
 		Subscriber* l_sub = NULL;
@@ -150,9 +149,10 @@ namespace mqsProvider
 		}
 		return l_sub;
 	}
-	const Publisher* Session::attachPublisher( const char* a_mqName )
+	const Publisher* Session::attachPublisher(
+			const char* a_mqName )
 	{
-		appCore::appAssert( isConnected(), "Session not connected" );
+		appUtil::assert( isConnected(), "Session not connected" );
 
 		PUBLISHERS* l_pmap = reinterpret_cast<PUBLISHERS*>( m_publishers );
 		Publisher* l_pub = NULL;

@@ -1,19 +1,18 @@
 /*
- * 
  * The MIT License (MIT)
- * 
- * Copyright (c) 2014 jairo-borba
- * 
+ *
+ * Copyright (c) 2014 jairo-borba jairo.borba.junior@gmail.com
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,25 +22,24 @@
  * SOFTWARE.
  *
  */
-
 #pragma once
 #include "mqsProvider/ListHeader.h"
 #include "mqsProvider/ListPtr.h"
 #include "mqsProvider/TreePtr.h"
-#include <base/ExceptionInfo.h>
+#include <appUtil/JJJException.h>
 #include <cstring>
 #include <cstdio>
 #include <ctime>
-#include <appCore/SafeStringDef.h>
+#include <appUtil/SafeStringDef.h>
 #include <base/Identificable.h>
 #include "mqsProvider/date_t.h"
-#include <appCore/Shortcuts.h>
+#include <appUtil/Shortcuts.h>
 
 namespace mqsProvider
 {
 	static const unsigned int MSGQSHDR_MAX_NAME_SIZE						= 64;
 	static const unsigned int MSGQSHDR_MAX_DESCRIPTION_SIZE					= 256;
-	static const char MSGQSHDR_MAGIC_CODE[]									= "AVL@GNSMSGQSHDR";
+	static const char MSGQSHDR_MAGIC_CODE[]									= "MQS@JJJMSGQSHDR";
 	static const unsigned short GLOBAL_LISTS_SEMAPHORE_NUMBER				= 0;
 	static const unsigned int DEFAULT_COUNT_START_RESOURCES					= 32;
 	static const unsigned int DEFAULT_DESTROY_MESSAGE_QUEUE_WAIT_SECONDS	= 60;
@@ -52,7 +50,7 @@ namespace mqsProvider
 		POS_FOR_MESSAGE_HEADERS,
 		POS_FOR_MESSAGE_BUFFERS,
 		POS_FOR_MESSAGE_QUEUES,
-		POS_FOR_TREE_NODES,
+		POS_FOR_TREE_NODES
 	};
 	enum MQS_STATUS
 	{
@@ -60,7 +58,7 @@ namespace mqsProvider
 		OPENING		=  0,
 		ACTIVE		=  1,
 		CLOSING		=  2,
-		CLOSED		=  3,
+		CLOSED		=  3
 	};
 	typedef struct tagParameters{
 		unsigned int countStartResources;
@@ -107,11 +105,16 @@ namespace mqsProvider
 		MessageQueueServiceHeader* a_msqHeader,
 		const base::Identificable& a_identification ){
 
-		memcpy( a_msqHeader->magicCode, MSGQSHDR_MAGIC_CODE, sizeof a_msqHeader->magicCode );
+		memcpy(
+				a_msqHeader->magicCode,
+				MSGQSHDR_MAGIC_CODE,
+				sizeof a_msqHeader->magicCode );
 		
-		a_msqHeader->internalId = a_identification.id();
-		safeSPrintf( a_msqHeader->name, sizeof a_msqHeader->name, "%s" , a_identification.name().c_str() );
 		safeSPrintf( 
+			a_msqHeader->name,
+			sizeof a_msqHeader->name,
+			"%s" , a_identification.label().c_str() );
+		safeSPrintf(
 			a_msqHeader->description, 
 			sizeof a_msqHeader->description, "%s",
 			a_identification.description().c_str() );
@@ -122,8 +125,10 @@ namespace mqsProvider
 		INIT_LIST_HEADER( &a_msqHeader->listMessageClusters, a_identification );
 		INIT_LIST_HEADER( &a_msqHeader->listMessageQueues, a_identification );
 		INIT_LIST_HEADER( &a_msqHeader->listTreeNodes, a_identification );
-		a_msqHeader->parameters.countStartResources = DEFAULT_COUNT_START_RESOURCES;
-		a_msqHeader->parameters.destroyMessageQueueWaitSeconds = DEFAULT_DESTROY_MESSAGE_QUEUE_WAIT_SECONDS;
+		a_msqHeader->parameters.countStartResources =
+				DEFAULT_COUNT_START_RESOURCES;
+		a_msqHeader->parameters.destroyMessageQueueWaitSeconds =
+				DEFAULT_DESTROY_MESSAGE_QUEUE_WAIT_SECONDS;
 		a_msqHeader->status = OPENING;
 		memset(
 			a_msqHeader->buffersStartPositionForEachList, 

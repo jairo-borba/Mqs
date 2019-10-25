@@ -1,19 +1,18 @@
 /*
- * 
  * The MIT License (MIT)
- * 
- * Copyright (c) 2014 jairo-borba
- * 
+ *
+ * Copyright (c) 2014 jairo-borba jairo.borba.junior@gmail.com
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,15 +22,14 @@
  * SOFTWARE.
  *
  */
-
 #include "mqsProvider/SharedMemoryAccess.h"
-#include <appCore/Shortcuts.h>
+#include <appUtil/Shortcuts.h>
 
 namespace mqsProvider
 {
 	SharedMemoryAccess::SharedMemoryAccess(void)
 	{
-		appCore::initPointer( m_sharedMemoryPtr );
+		appUtil::initPointer( m_sharedMemoryPtr );
 	}
 	SharedMemoryAccess::~SharedMemoryAccess(void)
 	{
@@ -39,7 +37,7 @@ namespace mqsProvider
 	bool SharedMemoryAccess::bind(void)
 	{
 		m_sharedMemoryPtr = this->specificBind();
-		bool l_ret = m_sharedMemoryPtr != 0;
+		bool l_ret = m_sharedMemoryPtr != NULL;
 
 		return l_ret;
 	}
@@ -47,7 +45,7 @@ namespace mqsProvider
 	{
 		VOID_RETURN_IF_NULL( m_sharedMemoryPtr );
 		this->specificDetach();
-		appCore::initPointer( m_sharedMemoryPtr );
+		appUtil::initPointer( m_sharedMemoryPtr );
 	}
 	void* SharedMemoryAccess::sharedMemoryPtr(void)
 	{

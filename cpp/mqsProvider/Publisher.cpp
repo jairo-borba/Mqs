@@ -1,19 +1,18 @@
 /*
- * 
  * The MIT License (MIT)
- * 
- * Copyright (c) 2014 jairo-borba
- * 
+ *
+ * Copyright (c) 2014 jairo-borba jairo.borba.junior@gmail.com
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,23 +22,22 @@
  * SOFTWARE.
  *
  */
-
 #include "mqsProvider/ListClient.h"
 #include "mqsProvider/MessageQueueServiceClient.h"
 #include "mqsProvider/MessageQueueClient.h"
 #include "mqsProvider/MessageQueueServiceHeader.h"
 #include "mqsProvider/MutualExclusionClient.h"
 #include "mqsProvider/Publisher.h"
-#include "appCore/SafeStringDef.h"
-#include <base/ExceptionInfo.h>
+#include "appUtil/SafeStringDef.h"
+#include <appUtil/JJJException.h>
 #include <cstdio>
-#include <appCore/Shortcuts.h>
+#include <appUtil/Shortcuts.h>
 
-#if _MSC_VER > 1600
+#if defined(_MSC_VER)
 #	include <windows.h>
 #	define PUBLISHER_SLEEP	Sleep
 #else
-#	if defined(GCC) || defined(XLC)
+#	if defined(GCC) || defined(XLC) || defined(__GNUC__)
 #		include<unistd.h>
 #		define PUBLISHER_SLEEP	usleep
 #	endif
@@ -50,60 +48,77 @@ namespace mqsProvider
 	static const unsigned short int DEFAULT_MORE_ALLOC_RESOURCES_QTY	= 32	;	//32 HEADERS AND 2*32 CLUSTERS MORE WHEN MISSING
 	static const unsigned int DEFAULT_RETRY_DELAY						= 100	;
 
-	Publisher::Publisher( MessageQueueServiceClient* a_messageQueueServiceClient, MutualExclusionClient* a_mutexClient)
+	Publisher::Publisher(
+			MessageQueueServiceClient* a_messageQueueServiceClient,
+			MutualExclusionClient* a_mutexClient)
 	{
 		m_messageQueueServiceClient = a_messageQueueServiceClient;
 		m_mutexClient = a_mutexClient;
-		appCore::appAssertPointer( m_messageQueueServiceClient );
-		appCore::appAssertPointer( m_mutexClient );
-		appCore::initPointer( m_messageQueueClient );
-		appCore::initPointer( m_messageIdentification );
+		appUtil::assertPointer( m_messageQueueServiceClient );
+		appUtil::assertPointer( m_mutexClient );
+		appUtil::initPointer( m_messageQueueClient );
+		appUtil::initPointer( m_messageIdentification );
 		m_numMaxTriesToSend		= 1;
+		m_retryDelay 			= 0;
+		m_moreAllocResourcesQty = 0;
 		this->setRetryDelay				( DEFAULT_RETRY_DELAY );
 		this->setMoreAllocResourcesQty	( DEFAULT_MORE_ALLOC_RESOURCES_QTY );
 		memset( m_msgqCreationDate, 0, sizeof m_msgqCreationDate );
 	}
 	Publisher::~Publisher(void)
 	{
-		appCore::safeDelete( m_messageQueueClient );
+		appUtil::safeDelete( m_messageQueueClient );
 		std::string* l_id = reinterpret_cast<std::string*>(m_messageIdentification);
 		delete l_id;
 		m_messageIdentification = 0;
 	}
-	void Publisher::setNumMaxRetriesToSend( unsigned int a_numMaxTriesToSend )
+	void Publisher::setNumMaxRetriesToSend(
+			unsigned int a_numMaxTriesToSend )
 	{
 		m_numMaxTriesToSend = a_numMaxTriesToSend;
 	}
-	void Publisher::setMoreAllocResourcesQty( unsigned short int a_moreAllocResourcesQty )
+	void Publisher::setMoreAllocResourcesQty(
+			unsigned short int a_moreAllocResourcesQty )
 	{
 		m_moreAllocResourcesQty = a_moreAllocResourcesQty;
 	}
-	void Publisher::setRetryDelay( unsigned int a_milisecondsRetryDelay )
+	void Publisher::setRetryDelay(
+			unsigned int a_milisecondsRetryDelay )
 	{
-#if defined(VISUAL_STUDIO)
+#if defined(_MSC_VER)
 		m_retryDelay = a_milisecondsRetryDelay;
 #else
-#	if defined(GCC) || defined(XLC)
+#	if defined(GCC) || defined(XLC) || defined(__GNUC__)
 		m_retryDelay = a_milisecondsRetryDelay * 1000;
 #	endif
 #endif
 	}
-	bool Publisher::open( const char* a_messageQueueName )
+	bool Publisher::open(
+			const char* a_messageQueueName )
 	{
-		appCore::appAssertPointer( m_messageQueueServiceClient );
-		appCore::appAssertPointer( m_mutexClient );
+		appUtil::assertPointer( m_messageQueueServiceClient );
+		appUtil::assertPointer( m_mutexClient );
 
 		m_messageQueueClient	= new MessageQueueClient;
 		m_messageIdentification	= new std::string;
-		appCore::appAssertPointer( m_messageQueueClient );
-		appCore::appAssertPointer( m_messageIdentification );
+		appUtil::assertPointer( m_messageQueueClient );
+		appUtil::assertPointer( m_messageIdentification );
 
-		MutualExclusionClient::ENTER_CRITICAL_AREA_STATUS l_enterStatus = m_mutexClient->enterCriticalArea(GLOBAL_LISTS_SEMAPHORE_NUMBER);
-		appCore::appAssert( l_enterStatus == MutualExclusionClient::ENTER_SUCCESS, "Publisher::open: Could not enter in critical area" );
+		MutualExclusionClient::ENTER_CRITICAL_AREA_STATUS l_enterStatus =
+				m_mutexClient->enterCriticalArea(GLOBAL_LISTS_SEMAPHORE_NUMBER);
+		appUtil::assert(
+				l_enterStatus == MutualExclusionClient::ENTER_SUCCESS,
+				"Publisher::open: Could not enter in critical area" );
 
-		bool l_ret = m_messageQueueServiceClient->findMessageQueue( a_messageQueueName, m_messageQueueClient );
+		bool l_ret =
+				m_messageQueueServiceClient->findMessageQueue(
+						a_messageQueueName, m_messageQueueClient );
 		if( l_ret ){
-			safeSPrintf( m_msgqCreationDate, sizeof m_msgqCreationDate, "%s", m_messageQueueClient->creationDate().c_str() );
+			safeSPrintf(
+					m_msgqCreationDate,
+					sizeof m_msgqCreationDate,
+					"%s",
+					m_messageQueueClient->creationDate().c_str() );
 		}
 
 		m_mutexClient->exitCriticalArea(GLOBAL_LISTS_SEMAPHORE_NUMBER);
@@ -111,20 +126,25 @@ namespace mqsProvider
 	}
 	void Publisher::close(void)
 	{
-		appCore::safeDelete( m_messageQueueClient );
+		appUtil::safeDelete( m_messageQueueClient );
 
-		std::string* l_id = reinterpret_cast<std::string*>(m_messageIdentification);
+		std::string* l_id =
+				reinterpret_cast<std::string*>(m_messageIdentification);
 		delete l_id;
 		m_messageIdentification = 0;
 	}
-	const Publisher& Publisher::identifyMessage( const char* a_messageIdentification ) const
+	const Publisher& Publisher::identifyMessage(
+			const char* a_messageIdentification ) const
 	{
-		std::string& l_refMsgId = *reinterpret_cast<std::string*>(m_messageIdentification);
+		std::string& l_refMsgId =
+				*reinterpret_cast<std::string*>(m_messageIdentification);
 		l_refMsgId.assign( a_messageIdentification );
 
 		return *this;
 	}
-	enum Publisher::SEND_STATUS Publisher::sendf( const char* a_format, ... ) const
+	enum Publisher::SEND_STATUS Publisher::sendf(
+			const char* a_format,
+			... ) const
 	{
 		va_list l_argList;
 		va_start( l_argList, a_format );
@@ -137,14 +157,17 @@ namespace mqsProvider
 		return l_ret;
 	}
 
-	enum Publisher::SEND_STATUS Publisher::send( const char* a_message, int a_messageSize ) const
+	enum Publisher::SEND_STATUS Publisher::send(
+			const char* a_message,
+			int a_messageSize ) const
 	{
 		unsigned int l_numTries = 0;
 		bool l_bContinue = true;
 
 		for(;l_bContinue;++l_numTries)
 		{
-			enum TRY_SEND_STATUS l_trySendStatus = this->trySend( a_message, a_messageSize );
+			enum TRY_SEND_STATUS l_trySendStatus =
+					this->trySend( a_message, a_messageSize );
 
 			switch(l_trySendStatus)
 			{
@@ -183,7 +206,9 @@ namespace mqsProvider
 		return l_ret;
 	}
 
-	enum Publisher::TRY_SEND_STATUS Publisher::trySend( const char* a_message, int a_messageSize ) const
+	enum Publisher::TRY_SEND_STATUS Publisher::trySend(
+			const char* a_message,
+			int a_messageSize ) const
 	{
 		//DANGEROUS OPERATIONS WHICH DO NOT NEED TO BE IN CRITICAL AREA (to avoid deadlock) [START]
 		RETURN_IF_NULL( m_messageQueueServiceClient,	TS_FATAL_ERROR );
@@ -192,7 +217,8 @@ namespace mqsProvider
 		RETURN_IF_NULL( a_message,						TS_FATAL_ERROR );
 		RETURN_IF_ZERO( a_messageSize,					TS_FATAL_ERROR );
 
-		const mqsProvider::MessageQueueServiceHeader* l_mqsHeader = m_messageQueueServiceClient->mqsHeader();
+		const mqsProvider::MessageQueueServiceHeader* l_mqsHeader =
+				m_messageQueueServiceClient->mqsHeader();
 		RETURN_IF_NULL( l_mqsHeader, TS_FATAL_ERROR );
 		std::string l_message( a_message, a_messageSize );
 		std::string& l_refMsgId = *reinterpret_cast<std::string*>(m_messageIdentification);
@@ -200,7 +226,8 @@ namespace mqsProvider
 		//DANGEROUS OPERATIONS WHICH DO NOT NEED TO BE IN CRITICAL AREA[END]
 
 		unsigned short int l_msgqSemNum = m_messageQueueClient->semaphoreNumber();
-		MutualExclusionClient::ENTER_CRITICAL_AREA_STATUS l_enterStatus = m_mutexClient->enterCriticalArea(l_msgqSemNum);
+		MutualExclusionClient::ENTER_CRITICAL_AREA_STATUS l_enterStatus =
+				m_mutexClient->enterCriticalArea(l_msgqSemNum);
 	///////////// CRITICAL CRITICAL CRITICAL CRITICAL CRITICAL CRITICAL CRITICAL CRITICAL /////////////[START]
 		try
 		{
@@ -306,23 +333,23 @@ namespace mqsProvider
 
 					m_mutexClient->exitCriticalArea(GLOBAL_LISTS_SEMAPHORE_NUMBER);
 					///////////// CRITICAL2 CRITICAL2 CRITICAL2 CRITICAL2 CRITICAL2 CRITICAL2 CRITICAL2 CRITICAL2 /////////////[END]
-				} catch( const base::ExceptionInfo& e ) {
+				} catch( const appUtil::JJJException& e ) {
 					m_mutexClient->exitCriticalArea(GLOBAL_LISTS_SEMAPHORE_NUMBER);
 					m_mutexClient->exitCriticalArea(l_msgqSemNum);
 					throw e;
 				}  catch( ... ) {
 					m_mutexClient->exitCriticalArea(GLOBAL_LISTS_SEMAPHORE_NUMBER);
 					m_mutexClient->exitCriticalArea(l_msgqSemNum);
-					throw base::ExceptionInfo( __FILE__, __LINE__, "Unknown exception" );
+					throw appUtil::JJJException( __FILE__, __LINE__, "Unknown exception" );
 				}
 			}
 			m_mutexClient->exitCriticalArea(l_msgqSemNum);
-		} catch( const base::ExceptionInfo& e ) {
+		} catch( const appUtil::JJJException& e ) {
 			m_mutexClient->exitCriticalArea(l_msgqSemNum);
 			throw e;
 		} catch( ... ) {
 			m_mutexClient->exitCriticalArea(l_msgqSemNum);
-			throw base::ExceptionInfo( __FILE__, __LINE__, "Unknown exception" );
+			throw appUtil::JJJException( __FILE__, __LINE__, "Unknown exception" );
 		}
 ///////////// CRITICAL CRITICAL CRITICAL CRITICAL CRITICAL CRITICAL CRITICAL CRITICAL /////////////[END]
 
@@ -332,7 +359,9 @@ namespace mqsProvider
 	enum Publisher::MORE_RESOURCES_STATUS Publisher::moreHeaders(void) const
 	{
 		mqsProvider::MessageQueueServiceHeader* l_mqsHeader = m_messageQueueServiceClient->mqsHeader();
-		mqsProvider::ListClient a_listCliMessageHeaders( &l_mqsHeader->listMessageHeaders.mainList, m_messageQueueServiceClient->messageHeaderBuffer() );
+		mqsProvider::ListClient a_listCliMessageHeaders(
+				&l_mqsHeader->listMessageHeaders.mainList,
+				m_messageQueueServiceClient->messageHeaderBuffer() );
 		unsigned int sl_moreResources = 0;
 		unsigned int sl_header = a_listCliMessageHeaders.dequeue();
 		while( sl_header != INDEX_NULL ){
@@ -346,7 +375,9 @@ namespace mqsProvider
 	enum Publisher::MORE_RESOURCES_STATUS Publisher::moreTreeNodes(void) const
 	{
 		mqsProvider::MessageQueueServiceHeader* l_mqsHeader = m_messageQueueServiceClient->mqsHeader();
-		mqsProvider::ListClient a_listCliMessageTreeNodes( &l_mqsHeader->listTreeNodes.mainList, m_messageQueueServiceClient->treeNodeBuffer() );
+		mqsProvider::ListClient a_listCliMessageTreeNodes(
+				&l_mqsHeader->listTreeNodes.mainList,
+				m_messageQueueServiceClient->treeNodeBuffer() );
 		unsigned int sl_moreResources = 0;
 		unsigned int sl_treeNodes = a_listCliMessageTreeNodes.dequeue();
 		while( sl_treeNodes != INDEX_NULL ){
@@ -360,8 +391,11 @@ namespace mqsProvider
 	}
 	enum Publisher::MORE_RESOURCES_STATUS Publisher::moreBuffers(void) const
 	{
-		mqsProvider::MessageQueueServiceHeader* l_mqsHeader = m_messageQueueServiceClient->mqsHeader();
-		mqsProvider::ListClient a_listCliMessageClusters( &l_mqsHeader->listMessageClusters.mainList, m_messageQueueServiceClient->messageClusterBuffer() );
+		mqsProvider::MessageQueueServiceHeader* l_mqsHeader =
+				m_messageQueueServiceClient->mqsHeader();
+		mqsProvider::ListClient a_listCliMessageClusters(
+				&l_mqsHeader->listMessageClusters.mainList,
+				m_messageQueueServiceClient->messageClusterBuffer() );
 		unsigned int sl_moreResources = 0;
 		unsigned int sl_messageCluster = a_listCliMessageClusters.dequeue();
 		while( sl_messageCluster != INDEX_NULL ){

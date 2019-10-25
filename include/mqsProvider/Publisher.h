@@ -1,19 +1,18 @@
 /*
- * 
  * The MIT License (MIT)
- * 
- * Copyright (c) 2014 jairo-borba
- * 
+ *
+ * Copyright (c) 2014 jairo-borba jairo.borba.junior@gmail.com
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,7 +22,6 @@
  * SOFTWARE.
  *
  */
-
 #pragma once
 
 namespace mqsProvider
@@ -46,7 +44,7 @@ namespace mqsProvider
 			SND_INPUT_OFF				=	5,
 			SND_MSGQUEUE_DESTROYED		=	6,
 			SND_SYSTEM_DOWN				=	7,
-			SND_COUNT_LIMIT				=	8,
+			SND_COUNT_LIMIT				=	8
 		};
 
 		Publisher(
@@ -54,16 +52,25 @@ namespace mqsProvider
 			MutualExclusionClient* a_mutexClient);
 		virtual ~Publisher(void);
 
-		bool open( const char* a_messageQueueName );
+		bool open(
+				const char* a_messageQueueName );
 		void close(void);
 
-		const Publisher& identifyMessage( const char* a_messageIdentification ) const;
-		enum SEND_STATUS sendf( const char* a_format, ... ) const;
-		enum SEND_STATUS send( const char* a_message, int a_messageSize ) const;
+		const Publisher& identifyMessage(
+				const char* a_messageIdentification ) const;
+		enum SEND_STATUS sendf(
+				const char* a_format,
+				... ) const;
+		enum SEND_STATUS send(
+				const char* a_message,
+				int a_messageSize ) const;
 
-		void setNumMaxRetriesToSend( unsigned int a_numMaxTriesToSend );
-		void setRetryDelay( unsigned int a_milisecondsRetryDelay );
-		void setMoreAllocResourcesQty( unsigned short int a_moreAllocResourcesQty );
+		void setNumMaxRetriesToSend(
+				unsigned int a_numMaxTriesToSend );
+		void setRetryDelay(
+				unsigned int a_milisecondsRetryDelay );
+		void setMoreAllocResourcesQty(
+				unsigned short int a_moreAllocResourcesQty );
 
 	private:
 		mutable MessageQueueServiceClient* m_messageQueueServiceClient;
@@ -85,7 +92,7 @@ namespace mqsProvider
 			TS_INPUT_OFF			=  6,
 			TS_MSGQUEUE_DESTROYED	=  7,
 			TS_SYSTEM_DOWN			=  8,
-			TS_COUNT_LIMIT			=  9,
+			TS_COUNT_LIMIT			=  9
 		};
 		enum MORE_RESOURCES_STATUS
 		{

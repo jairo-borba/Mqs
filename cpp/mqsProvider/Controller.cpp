@@ -1,19 +1,18 @@
 /*
- * 
  * The MIT License (MIT)
- * 
- * Copyright (c) 2014 jairo-borba
- * 
+ *
+ * Copyright (c) 2014 jairo-borba jairo.borba.junior@gmail.com
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,7 +22,6 @@
  * SOFTWARE.
  *
  */
-
 #include "mqsProvider/ListClient.h"
 #include "mqsProvider/MessageQueueServiceClient.h"
 #include "mqsProvider/MessageQueueClient.h"
@@ -31,15 +29,15 @@
 #include "mqsProvider/MutualExclusionClient.h"
 #include "mqsProvider/Controller.h"
 
-#include <base/ExceptionInfo.h>
-#include <appCore/Shortcuts.h>
+#include <appUtil/JJJException.h>
+#include <appUtil/Shortcuts.h>
 #include <string>
 
-#if _MSC_VER > 1600
+#if defined(_MSC_VER)
 #	include <windows.h>
 #	define CONTROLLER_SLEEP(DELAY)	Sleep(DELAY)
 #else
-#	if defined(GCC) || defined(XLC)
+#	if defined(GCC) || defined(XLC) || defined(__GNUC__)
 #		include<unistd.h>
 #		define CONTROLLER_SLEEP(DELAY)	usleep(DELAY*1000)
 #	endif
@@ -47,12 +45,14 @@
 
 namespace mqsProvider
 {
-	Controller::Controller( MessageQueueServiceClient* a_messageQueueServiceClient, MutualExclusionClient* a_mutexClient )
+	Controller::Controller(
+			MessageQueueServiceClient* a_messageQueueServiceClient,
+			MutualExclusionClient* a_mutexClient )
 	{
 		m_messageQueueServiceClient	= a_messageQueueServiceClient;
 		m_mutexClient				= a_mutexClient;
-		appCore::appAssertPointer( m_messageQueueServiceClient );
-		appCore::appAssertPointer( m_mutexClient );
+		appUtil::assertPointer( m_messageQueueServiceClient );
+		appUtil::assertPointer( m_mutexClient );
 	}
 	Controller::~Controller(void)
 	{
@@ -63,17 +63,23 @@ namespace mqsProvider
 	}
 	bool Controller::open(void)
 	{
-		appCore::appAssertPointer( m_messageQueueServiceClient );
-		appCore::appAssertPointer( m_mutexClient);
-		appCore::appAssert( m_mutexClient->open(),"Controller::open: Error opening Mutex" );
+		appUtil::assertPointer( m_messageQueueServiceClient );
+		appUtil::assertPointer( m_mutexClient);
+		appUtil::assert( m_mutexClient->open(),"Controller::open: Error opening Mutex" );
 
-		MutualExclusionClient::ENTER_CRITICAL_AREA_STATUS l_enterStatus = m_mutexClient->enterCriticalArea(GLOBAL_LISTS_SEMAPHORE_NUMBER);
-		appCore::appAssert( l_enterStatus == MutualExclusionClient::ENTER_SUCCESS, "Controller::open: Could not enter in critical area" );
+		MutualExclusionClient::ENTER_CRITICAL_AREA_STATUS l_enterStatus =
+				m_mutexClient->enterCriticalArea(GLOBAL_LISTS_SEMAPHORE_NUMBER);
+		appUtil::assert(
+				l_enterStatus == MutualExclusionClient::ENTER_SUCCESS,
+				"Controller::open: Could not enter in critical area" );
 
-		bool l_mqscliRet = m_messageQueueServiceClient->open();
+		bool l_mqscliRet =
+				m_messageQueueServiceClient->open();
 
 		m_mutexClient->exitCriticalArea(GLOBAL_LISTS_SEMAPHORE_NUMBER);
-		appCore::appAssert( l_mqscliRet, "Controller::open: Error opening MessageQueueServiceClient" );
+		appUtil::assert(
+				l_mqscliRet,
+				"Controller::open: Error opening MessageQueueServiceClient" );
 
 		return true;
 	}
@@ -83,18 +89,32 @@ namespace mqsProvider
 		m_messageQueueServiceClient->close();
 	}
 
-	bool Controller::createMessageQueue( const char* a_msgqName, unsigned int a_countLimit, unsigned int a_timeToLive ) const
+	bool Controller::createMessageQueue(
+			const char* a_msgqName,
+			unsigned int a_countLimit,
+			unsigned int a_timeToLive ) const
 	{
-		appCore::appAssertPointer( m_messageQueueServiceClient );
-		appCore::appAssertPointer( m_mutexClient);
-		MutualExclusionClient::ENTER_CRITICAL_AREA_STATUS l_enterStatus = m_mutexClient->enterCriticalArea(GLOBAL_LISTS_SEMAPHORE_NUMBER);
-		appCore::appAssert( l_enterStatus == MutualExclusionClient::ENTER_SUCCESS, "Controller::open: Could not enter in critical area" );
+		appUtil::assertPointer( m_messageQueueServiceClient );
+		appUtil::assertPointer( m_mutexClient);
+		MutualExclusionClient::ENTER_CRITICAL_AREA_STATUS l_enterStatus =
+				m_mutexClient->enterCriticalArea(GLOBAL_LISTS_SEMAPHORE_NUMBER);
+		appUtil::assert(
+				l_enterStatus == MutualExclusionClient::ENTER_SUCCESS,
+				"Controller::open: Could not enter in critical area" );
 
-		bool l_created = m_messageQueueServiceClient->createMessageQueue( a_msgqName, a_countLimit, a_timeToLive );
+		bool l_created =
+				m_messageQueueServiceClient->createMessageQueue(
+						a_msgqName,
+						a_countLimit,
+						a_timeToLive );
 		MessageQueueClient l_mqCli;
-		bool l_found = m_messageQueueServiceClient->findMessageQueue( a_msgqName, &l_mqCli );
+		bool l_found =
+				m_messageQueueServiceClient->findMessageQueue(
+						a_msgqName,
+						&l_mqCli );
 		if( l_created && l_found ){
-			unsigned int l_semNum = l_mqCli.semaphoreNumber();
+			unsigned int l_semNum =
+					l_mqCli.semaphoreNumber();
 			m_mutexClient->setMutex( l_semNum, true );
 		}
 				
@@ -105,29 +125,37 @@ namespace mqsProvider
 	bool Controller::destroyMessageQueue( const char* a_msgqName ) const
 	{
 
-		appCore::appAssertPointer( m_messageQueueServiceClient );
-		appCore::appAssertPointer( m_mutexClient );
+		appUtil::assertPointer( m_messageQueueServiceClient );
+		appUtil::assertPointer( m_mutexClient );
 
-		MutualExclusionClient::ENTER_CRITICAL_AREA_STATUS l_enterStatus = MutualExclusionClient::ENTER_SUCCESS;
+		MutualExclusionClient::ENTER_CRITICAL_AREA_STATUS l_enterStatus =
+				MutualExclusionClient::ENTER_SUCCESS;
 		l_enterStatus = m_mutexClient->enterCriticalArea(GLOBAL_LISTS_SEMAPHORE_NUMBER);
 		RETURN_IF( l_enterStatus != MutualExclusionClient::ENTER_SUCCESS, false );
 
 		MessageQueueClient l_mqCli;
-		bool l_found = m_messageQueueServiceClient->findMessageQueue( a_msgqName, &l_mqCli );
+		bool l_found = m_messageQueueServiceClient->findMessageQueue(
+				a_msgqName, &l_mqCli );
 		m_mutexClient->exitCriticalArea(GLOBAL_LISTS_SEMAPHORE_NUMBER);
 		RETURN_IF( !l_found, false );
 
 		//FECHA A PORTA DE ENTRADA DA MESSAGE QUEUE
-		bool l_ret = enableMessageQueueInput( &l_mqCli, false );
+		bool l_ret = enableMessageQueueInput(
+				&l_mqCli,
+				false );
 		//CERTIFICA QUE A PORTA DE SAIDA ESTA ABERTA
-		l_ret = enableMessageQueueOutput( &l_mqCli, true );
+		l_ret = enableMessageQueueOutput(
+				&l_mqCli,
+				true );
 
 		//ESPERA A MESSAGE QUEUE SER CONSUMIDA
-		unsigned int l_timeout		= m_messageQueueServiceClient->mqsHeader()->parameters.destroyMessageQueueWaitSeconds;
+		unsigned int l_timeout		=
+				m_messageQueueServiceClient->mqsHeader()->parameters.destroyMessageQueueWaitSeconds;
 		unsigned int l_msecsTimeout = l_timeout * 1000;
 		const unsigned int l_poll	= 12;
 		unsigned int l_countMsg = 0;
-		for(unsigned int l_countTries = 0;l_countTries < l_poll; ++l_countTries){
+		for(unsigned int l_countTries = 0;l_countTries < l_poll; ++l_countTries)
+		{
 			l_countMsg = countMessages( &l_mqCli );
 			BREAK_IF( l_countMsg == 0 );
 			CONTROLLER_SLEEP( l_msecsTimeout / l_poll );
@@ -145,25 +173,33 @@ namespace mqsProvider
 			this->emptyMessageQueue( &l_mqCli );
 		}
 		
-		l_ret = m_messageQueueServiceClient->destroyMessageQueue( a_msgqName );
+		l_ret = m_messageQueueServiceClient->destroyMessageQueue(
+				a_msgqName );
 
 		m_mutexClient->exitCriticalArea(l_mqSemNum);
 
 		return l_ret;
 	}
-	void Controller::emptyMessageQueue(MessageQueueClient* a_mqClient) const
+	void Controller::emptyMessageQueue(
+			MessageQueueClient* a_mqClient) const
 	{
 		std::string l_dropped;
 		date_t l_messageDate;
 
 		//const char* l_path = m_messageQueueServiceClient->mqsHeader()->parameters.droppedMessagesFilePath;
-		while( a_mqClient->receiveMessage( "", l_dropped, l_messageDate ) ){
+		while( a_mqClient->receiveMessage(
+				"",
+				l_dropped,
+				l_messageDate ) ){
 		}
 	}
 	
-	bool Controller::enableMessageQueueInput(MessageQueueClient* a_mqClient, bool a_enable) const
+	bool Controller::enableMessageQueueInput(
+			MessageQueueClient* a_mqClient,
+			bool a_enable) const
 	{
-		MutualExclusionClient::ENTER_CRITICAL_AREA_STATUS l_enterStatus = MutualExclusionClient::ENTER_SUCCESS;
+		MutualExclusionClient::ENTER_CRITICAL_AREA_STATUS l_enterStatus =
+				MutualExclusionClient::ENTER_SUCCESS;
 
 		unsigned short l_mqSemNum = a_mqClient->semaphoreNumber();
 
@@ -177,9 +213,12 @@ namespace mqsProvider
 		return true;
 	}
 
-	bool Controller::enableMessageQueueOutput(MessageQueueClient* a_mqClient, bool a_enable) const
+	bool Controller::enableMessageQueueOutput(
+			MessageQueueClient* a_mqClient,
+			bool a_enable) const
 	{
-		MutualExclusionClient::ENTER_CRITICAL_AREA_STATUS l_enterStatus = MutualExclusionClient::ENTER_SUCCESS;
+		MutualExclusionClient::ENTER_CRITICAL_AREA_STATUS l_enterStatus =
+				MutualExclusionClient::ENTER_SUCCESS;
 
 		unsigned short l_mqSemNum = a_mqClient->semaphoreNumber();
 
@@ -193,7 +232,8 @@ namespace mqsProvider
 		return true;
 	}
 
-	unsigned int Controller::countMessages(MessageQueueClient* a_mqClient) const
+	unsigned int Controller::countMessages(
+			MessageQueueClient* a_mqClient) const
 	{
 		unsigned int l_pendingMessages = a_mqClient->countMessages();
 		

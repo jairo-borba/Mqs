@@ -1,19 +1,18 @@
 /*
- * 
  * The MIT License (MIT)
- * 
- * Copyright (c) 2014 jairo-borba
- * 
+ *
+ * Copyright (c) 2014 jairo-borba jairo.borba.junior@gmail.com
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,30 +22,35 @@
  * SOFTWARE.
  *
  */
-
 #include "mqsProvider/TreeClient.h"
-#include <base/ExceptionInfo.h>
-#include <appCore/Shortcuts.h>
+#include <appUtil/JJJException.h>
+#include <appUtil/Shortcuts.h>
 namespace mqsProvider
 {
 	TreeClient::TreeClient(void)
 	{
-		appCore::initPointer( m_treePtr );
-		appCore::initPointer( m_buffer );
+		appUtil::initPointer( m_treePtr );
+		appUtil::initPointer( m_buffer );
 	}
-	TreeClient::TreeClient( TreePtr* a_treePtr, void* a_buffer )
+	TreeClient::TreeClient(
+			TreePtr* a_treePtr,
+			void* a_buffer )
 	{
+		appUtil::initPointer( m_treePtr );
+		appUtil::initPointer( m_buffer );
 		this->setTreePtr( a_treePtr );
 		this->setBuffer( a_buffer );
 	}
 	TreeClient::~TreeClient(void)
 	{
 	}
-	void TreeClient::setTreePtr( TreePtr* a_treePtr )
+	void TreeClient::setTreePtr(
+			TreePtr* a_treePtr )
 	{
 		m_treePtr = a_treePtr;
 	}
-	void TreeClient::setBuffer( void* a_buffer )
+	void TreeClient::setBuffer(
+			void* a_buffer )
 	{
 		m_buffer = reinterpret_cast<char*>(a_buffer);
 	}
@@ -55,38 +59,44 @@ namespace mqsProvider
 		bool l_isLeaf = NODE_LEFT(m_buffer,a_node) == INDEX_NULL && NODE_RIGHT(m_buffer,a_node) == INDEX_NULL;
 		return l_isLeaf;
 	}
-	bool TreeClient::isLeftChild( unsigned int a_node )
+	bool TreeClient::isLeftChild(
+			unsigned int a_node )
 	{
 		bool l_isLeftChild = NODE_PARENT_LEFT(m_buffer,a_node) == a_node;
 		return l_isLeftChild;
 	}
-	bool TreeClient::isRightChild( unsigned int a_node )
+	bool TreeClient::isRightChild(
+			unsigned int a_node )
 	{
 		bool l_isRightChild = NODE_PARENT_RIGHT(m_buffer,a_node) == a_node;
 		return l_isRightChild;
 	}
-	bool TreeClient::hasBothChilds( unsigned int a_node )
+	bool TreeClient::hasBothChilds(
+			unsigned int a_node )
 	{
 		bool l_hasBothChilds =
 			NODE_RIGHT(m_buffer,a_node) != INDEX_NULL && 
 			NODE_LEFT(m_buffer,a_node) != INDEX_NULL;
 		return l_hasBothChilds;
 	}
-	bool TreeClient::hasOnlyLeftChild( unsigned int a_node )
+	bool TreeClient::hasOnlyLeftChild(
+			unsigned int a_node )
 	{
 		bool l_hasOnlyLeftChild =
 			NODE_RIGHT(m_buffer,a_node) == INDEX_NULL && 
 			NODE_LEFT(m_buffer,a_node) != INDEX_NULL;
 		return l_hasOnlyLeftChild;
 	}
-	bool TreeClient::hasOnlyRightChild( unsigned int a_node )
+	bool TreeClient::hasOnlyRightChild(
+			unsigned int a_node )
 	{
 		bool l_hasOnlyRightChild =
 			NODE_RIGHT(m_buffer,a_node) != INDEX_NULL && 
 			NODE_LEFT(m_buffer,a_node) == INDEX_NULL;
 		return l_hasOnlyRightChild;
 	}
-	bool TreeClient::isRoot( unsigned int a_node )
+	bool TreeClient::isRoot(
+			unsigned int a_node )
 	{
 		bool l_isRoot = a_node == m_treePtr->root;
 		return l_isRoot;
@@ -113,7 +123,8 @@ namespace mqsProvider
 		NODE_RIGHT(m_buffer,l_leavingRoot)		= INDEX_NULL;
 		NODE_PARENT(m_buffer,l_leavingRoot)		= INDEX_NULL;
 	}
-	void TreeClient::removeNotRootLeaf( unsigned int a_leavingNode )
+	void TreeClient::removeNotRootLeaf(
+			unsigned int a_leavingNode )
 	{
 		if( this->isLeftChild( a_leavingNode ) ){
 			NODE_PARENT_LEFT(m_buffer,a_leavingNode)= INDEX_NULL;
@@ -127,11 +138,13 @@ namespace mqsProvider
 			NODE_PARENT(m_buffer,a_leavingNode)			= INDEX_NULL;
 		}
 	}
-	void TreeClient::removeCommon( unsigned int a_leavingNode )
+	void TreeClient::removeCommon(
+			unsigned int a_leavingNode )
 	{
 		if( this->hasBothChilds( a_leavingNode ) ){
 
-			unsigned int sl_newLeftParent = this->minor( NODE_RIGHT(m_buffer,a_leavingNode) );
+			unsigned int sl_newLeftParent =
+					this->minor( NODE_RIGHT(m_buffer,a_leavingNode) );
 
 			if( this->isLeftChild( a_leavingNode ) ){
 				NODE_PARENT_LEFT(m_buffer,a_leavingNode) = NODE_RIGHT(m_buffer,a_leavingNode);
@@ -167,10 +180,11 @@ namespace mqsProvider
 		NODE_PARENT(m_buffer,a_leavingNode)	= INDEX_NULL;
 	}
 
-	bool TreeClient::remove( unsigned int a_leavingNode )
+	bool TreeClient::remove(
+			unsigned int a_leavingNode )
 	{
-		appCore::appAssertPointer( m_treePtr );
-		appCore::appAssertPointer( m_buffer );
+		appUtil::assertPointer( m_treePtr );
+		appUtil::assertPointer( m_buffer );
 		RETURN_IF( a_leavingNode == INDEX_NULL, false );
 
 		if( this->isRoot( a_leavingNode ) ){		//Removing ROOT Node
@@ -184,10 +198,13 @@ namespace mqsProvider
 
 		return true;
 	}
-	bool TreeClient::insert( unsigned int a_newNode, const trn_key_t& a_key, unsigned int a_attach )
+	bool TreeClient::insert(
+			unsigned int a_newNode,
+			const trn_key_t& a_key,
+			unsigned int a_attach )
 	{
-		appCore::appAssertPointer( m_treePtr );
-		appCore::appAssertPointer( m_buffer );
+		appUtil::assertPointer( m_treePtr );
+		appUtil::assertPointer( m_buffer );
 		RETURN_IF( a_newNode == INDEX_NULL, false );
 		
 		INIT_TREE_NODE(m_buffer,a_newNode);
@@ -202,7 +219,8 @@ namespace mqsProvider
 			unsigned int l_parent	= INDEX_NULL;
 			while(true){
 				l_parent = l_current;
-				if( strcmp( NODE_KEY(m_buffer,a_newNode), NODE_KEY(m_buffer,l_current) ) < 0 ){
+				if( strcmp( NODE_KEY(m_buffer,a_newNode), NODE_KEY(m_buffer,l_current) ) < 0 )
+				{
 					l_current = NODE_LEFT(m_buffer,l_current);
 					if( l_current == INDEX_NULL ){
 						NODE_LEFT(m_buffer,l_parent)	= a_newNode;
@@ -223,7 +241,8 @@ namespace mqsProvider
 		m_treePtr->countElements++;
 		return true;
 	}
-	unsigned int TreeClient::minor( unsigned int a_startNode )
+	unsigned int TreeClient::minor(
+			unsigned int a_startNode )
 	{
 		unsigned int l_current	= a_startNode;
 		unsigned int l_minor = INDEX_NULL;
@@ -235,10 +254,11 @@ namespace mqsProvider
 
 		return l_minor;
 	}
-	unsigned int TreeClient::find( const char* a_key )
+	unsigned int TreeClient::find(
+			const char* a_key )
 	{
-		appCore::appAssertPointer( m_treePtr );
-		appCore::appAssertPointer( m_buffer );
+		appUtil::assertPointer( m_treePtr );
+		appUtil::assertPointer( m_buffer );
 
 		unsigned int l_current	= m_treePtr->root;
 		RETURN_IF( l_current == INDEX_NULL, INDEX_NULL );
@@ -262,20 +282,20 @@ namespace mqsProvider
 	}
 	unsigned int TreeClient::root(void) const
 	{
-		appCore::appAssertPointer( m_treePtr );
+		appUtil::assertPointer( m_treePtr );
 		return m_treePtr->root;
 	}
 	unsigned int TreeClient::count(void) const
 	{
-		RETURN_IF( m_treePtr == 0, 0 );
+		RETURN_IF( m_treePtr == NULL, 0 );
 
 		return m_treePtr->countElements;
 	}
 
 	bool TreeClient::scanValidation(void) const
 	{
-		appCore::appAssertPointer( m_treePtr );
-		appCore::appAssertPointer( m_buffer );
+		appUtil::assertPointer( m_treePtr );
+		appUtil::assertPointer( m_buffer );
 
 		unsigned int l_root	= m_treePtr->root;
 		unsigned int l_countElements = this->scanAndValidate( INDEX_NULL, l_root );
